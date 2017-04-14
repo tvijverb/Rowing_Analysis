@@ -13,7 +13,13 @@ function importcert(filename)
         copyfile(cacerts,[cacerts '.org'])
     end
     % Construct and execute keytool
-    command = sprintf('"%s" -import -file "%s" -keystore "%s" -storepass changeit',keytool,filename,cacerts);
-    dos(command);
+    try
+        command = sprintf('"%s" -import -file "%s" -keystore "%s" -storepass changeit',keytool,filename,cacerts);
+        command = sprintf('"%s" -import -v -trustcacerts -file "%s" -keystore "%s" -storepass changeit',keytool,filename,cacerts);
+        dos(command);
+    catch 
+        command = sprintf('"%s"-import -v -trustcacerts -alias tomcat -file "%s" -keystore "%s" -storepass changeit',keytool,filename,cacerts);
+        dos(command);
+    end
 end
     

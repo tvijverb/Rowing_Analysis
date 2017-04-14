@@ -14,7 +14,8 @@ function [timestruct] = timeteam_crawl()
 
 %% Create base URL for time-team db site 
 baseSearchURL = 'https://time-team.nl/informatie/uitslagen';
-urlResponse = urlread2(baseSearchURL);
+urlResponse = webread(baseSearchURL);
+
 
 matches = regexp(urlResponse, 'http://regatta..*?matrix.php', 'match');
 [numberofRowingMatches] = length(matches);
@@ -32,15 +33,53 @@ end
 [numberofRowingMatches] = length(matches);
 disp(matches{1,numberofRowingMatches});
 %% Loop over all rowing matches
+importErrors = 0;
+
 for currentRowingMatch = 1 : numberofRowingMatches
     urlMatchResponse = [];
+    %Default var (name,year)
+    [~,hitsForwardslash] = regexp(matches{1,currentRowingMatch},'/');
+    name = matches{1,currentRowingMatch}(hitsForwardslash(3)+1:hitsForwardslash(4)-1);
+    year = matches{1,currentRowingMatch}(hitsForwardslash(4)+1:hitsForwardslash(5)-1);
     disp(matches{1,currentRowingMatch});
     
-    urlMatchResponse = urlread2(matches{1,currentRowingMatch});
-    [~,hitsForwardslash] = regexp(matches{1,currentRowingMatch},'/');
-    timestruct(currentRowingMatch).name = matches{1,currentRowingMatch}(hitsForwardslash(3)+1:hitsForwardslash(4)-1);
-    disp(num2str(currentRowingMatch));
+    % Exception handeling
+    if strcmp(name,'coupe') || strcmp(name,'nls') || strcmp(name,'srg')
+        importErrors = importErrors + 1;
+        continue
+    end
+    if strcmp(year,'2011') || strcmp(year,'2010')
+        importErrors = importErrors + 1;
+        break
+    end
+    
+    % Read match
+    urlMatchResponse = webread(matches{1,currentRowingMatch});
+    
+    % Get rowing crew specific url extension
+    [hits_char,index] = regexp(urlMatchResponse,'title=.*?>','match');
+    rowingCrews = regexp(hits_char,'''(.[^'']*)''','match');
+    for i = 1 : length(rowingCrews)
+        rowingCrewURL(i,:) = urlMatchResponse(index(i)-9:index(i)-3);
+    end
+    isValidRowingCrew = isstrprop(rowingCrewURL(:,1),'digit');
+    rowingCrews = rowingCrews(isValidRowingCrew);
+    rowingCrewURL = rowingCrewURL(isValidRowingCrew,:);
+    disp(strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(1,:)));
+    
+    for crew = 1 : length(rowingCrews)
+        url = 'http://regatta.time-team.nl/varsity/2017/results/010.php';
+        urlCrewResponse = webread(url);
+        urlCrewResponse = regexp(urlCrewResponse,'container.*?</div>','match');
+    end
+        
+    
+    timestruct(currentRowingMatch - importErrors).name = name;
+    timestruct(currentRowingMatch - importErrors).year = year;
+    disp(num2str(currentRowingMatch-importErrors));
 end
+
+
 % for i = 1:length(Ctopics)
 %     searchterm = Ctopics(i);
 %     
