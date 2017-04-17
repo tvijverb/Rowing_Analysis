@@ -37,6 +37,7 @@ importErrors = 0;
 
 for currentRowingMatch = 1 : numberofRowingMatches
     urlMatchResponse = [];
+    rowingCrewURL=[];
     %Default var (name,year)
     [~,hitsForwardslash] = regexp(matches{1,currentRowingMatch},'/');
     name = matches{1,currentRowingMatch}(hitsForwardslash(3)+1:hitsForwardslash(4)-1);
@@ -61,6 +62,7 @@ for currentRowingMatch = 1 : numberofRowingMatches
     rowingCrews = regexp(hits_char,'''(.[^'']*)''','match');
     for i = 1 : length(rowingCrews)
         rowingCrewURL(i,:) = urlMatchResponse(index(i)-9:index(i)-3);
+        %disp(strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(i,:)));
     end
     isValidRowingCrew = isstrprop(rowingCrewURL(:,1),'digit');
     rowingCrews = rowingCrews(isValidRowingCrew);
