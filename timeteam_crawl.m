@@ -70,14 +70,42 @@ for currentRowingMatch = 1 : numberofRowingMatches
     disp(strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(1,:)));
     
     for crew = 1 : length(rowingCrews)
-        url = 'http://regatta.time-team.nl/varsity/2017/results/010.php';
+        %url = 'http://regatta.time-team.nl/varsity/2017/results/010.php';
+        url = strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(crew,:));
         urlCrewResponse = webread(url);
-        urlCrewResponse = regexp(urlCrewResponse,'container.*?</div>','match');
+        urlCrewResponseFilter(crew,:) = regexp(urlCrewResponse,'container.*?</div>','match');
+        crewContent2 = regexp(urlCrewResponseFilter(crew,:),'<tr class=.*?><td>.*?</td></tr>','match');
+        crewContent = crewContent2{1,1}(1:2:end);
+        disp(['Number of participating crews in ', rowingCrews{1,crew}{1,1}, ': ', num2str(length(crewContent))]);
+        crewName = regexp(crewContent,'<a href=.*?>.*?</a>','match');
+        crewName = crewName(~cellfun(@isempty, crewName));
+        
+        crewStartName = {};
+        
+        if(length(crewName) == 0)
+            continue
+        end
+        for i = 1 : length(crewName(1,:))
+            crewLinktmp(i,:) = regexp(crewName{1,i}{1,2},'''(.[^'']*)''','match');
+            crewLinktmp2(i,:) = regexp(crewName{1,i}{1,2},'>.*?<','match');
+            crewLinktmp3(i,:) = regexp(crewContent,'right;.*?>.*?</td>','match');
+            %crewLinktmp4(i,:) = regexp(crewLinktmp3,'>.*?<','match');
+            for j = 1 : length(crewLinktmp3{1,i})-1
+                crewStartName{crew,i,j+2} = crewLinktmp3{1,i}{1,j}(9:end-5);
+            end
+            crewStartName{crew,i,1} = crewLinktmp2{i,1}(2:end-1);
+            crewStartName{crew,i,2} = crewLinktmp{i,1}(4:end-1);
+            
+        end
+        clearvars crewLinktmp crewLinktmp2 crewLinktmp3 crewLinktmp4
     end
         
     
     timestruct(currentRowingMatch - importErrors).name = name;
     timestruct(currentRowingMatch - importErrors).year = year;
+    timestruct(currentRowingMatch - importErrors).startingList = rowingCrews;
+    timestruct(currentRowingMatch - importErrors).results = crewStartName; %startingList,startingClub,results
+    clearvars urlCrewResponse urlCrewResponseFilter crewContent2 crewContent crewName crewStartName
     disp(num2str(currentRowingMatch-importErrors));
 end
 
