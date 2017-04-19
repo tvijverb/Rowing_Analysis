@@ -91,10 +91,10 @@ for currentRowingMatch = 1 : numberofRowingMatches
             crewLinktmp3(i,:) = regexp(crewContent,'right;.*?>.*?</td>','match');
             %crewLinktmp4(i,:) = regexp(crewLinktmp3,'>.*?<','match');
             for j = 1 : length(crewLinktmp3{1,i})-1
-                crewStartName{crew,i,j+2} = crewLinktmp3{1,i}{1,j}(9:end-5);
+                rowingCrews{2,crew}{i,j+2} = crewLinktmp3{1,i}{1,j}(9:end-5);
             end
-            crewStartName{crew,i,1} = crewLinktmp2{i,1}(2:end-1);
-            crewStartName{crew,i,2} = crewLinktmp{i,1}(4:end-1);
+            rowingCrews{2,crew}{i,1} = crewLinktmp2{i,1}(2:end-1);
+            rowingCrews{2,crew}{i,2} = crewLinktmp{i,1}(4:end-1);
             
         end
         clearvars crewLinktmp crewLinktmp2 crewLinktmp3 crewLinktmp4
@@ -104,7 +104,6 @@ for currentRowingMatch = 1 : numberofRowingMatches
     timestruct(currentRowingMatch - importErrors).name = name;
     timestruct(currentRowingMatch - importErrors).year = year;
     timestruct(currentRowingMatch - importErrors).startingList = rowingCrews;
-    timestruct(currentRowingMatch - importErrors).results = crewStartName; %startingList,startingClub,results
     clearvars urlCrewResponse urlCrewResponseFilter crewContent2 crewContent crewName crewStartName
     disp(num2str(currentRowingMatch-importErrors));
 end
