@@ -20,14 +20,19 @@ urlResponse = webread(baseSearchURL);
 matches = regexp(urlResponse, 'http://regatta..*?matrix.php', 'match');
 [numberofRowingMatches] = length(matches);
 
-%% Handle NKIR 2014 error exception
+%% Handle NKIR/DMO 2014 error exception
+
+err = 0;
 for currentRowingMatch = 1 : numberofRowingMatches
     urlMatchResponse = [];
-    disp(matches{1,currentRowingMatch});
-    if(regexp(matches{1,currentRowingMatch},'nkir/2014'))
-        [~,hitsForwardslash] = regexp(matches{1,currentRowingMatch},'/');
-        matches{1,numberofRowingMatches+1} = regexp(matches{1,currentRowingMatch}(hitsForwardslash(5):end),'[]http://regatta..*?matrix.php', 'match');
-        matches{1,currentRowingMatch} = strcat(matches{1,currentRowingMatch}(1:hitsForwardslash(5)),'results/matrix.php');
+    disp(matches{1,currentRowingMatch-err});
+    if(regexp(matches{1,currentRowingMatch-err},'nkir/2014'))
+        [~,hitsForwardslash] = regexp(matches{1,currentRowingMatch-err},'/');
+        matches{1,numberofRowingMatches+1} = regexp(matches{1,currentRowingMatch-err}(hitsForwardslash(5):end),'[]http://regatta..*?matrix.php', 'match');
+        matches{1,currentRowingMatch-err} = strcat(matches{1,currentRowingMatch-err}(1:hitsForwardslash(5)),'results/matrix.php');
+    end
+    if(regexp(matches{1,currentRowingMatch-err},'dmo/2014'))
+        err = 1;
     end
 end
 [numberofRowingMatches] = length(matches);
@@ -35,7 +40,7 @@ disp(matches{1,numberofRowingMatches});
 %% Loop over all rowing matches
 importErrors = 0;
 
-for currentRowingMatch = 1 : numberofRowingMatches
+for currentRowingMatch = 66 : numberofRowingMatches
     urlMatchResponse = [];
     rowingCrewURL=[];
     %Default var (name,year)
@@ -45,7 +50,7 @@ for currentRowingMatch = 1 : numberofRowingMatches
     disp(matches{1,currentRowingMatch});
     
     % Exception handeling
-    if strcmp(name,'coupe') || strcmp(name,'nls') || strcmp(name,'srg')
+    if strcmp(name,'coupe') || strcmp(name,'nls') || strcmp(name,'srg') || strcmp(name,'dmo')
         importErrors = importErrors + 1;
         continue
     end
@@ -70,9 +75,17 @@ for currentRowingMatch = 1 : numberofRowingMatches
     disp(strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(1,:)));
     
     for crew = 1 : length(rowingCrews)
-        %url = 'http://regatta.time-team.nl/varsity/2017/results/010.php';
         url = strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(crew,:));
+        
+        if(strcmp(url,'http://regatta.time-team.nl/asoposnajaars/2016/results/001.php') || strcmp(url,'http://regatta.time-team.nl/asoposnajaars/2016/results/002.php') || strcmp(url,'http://regatta.time-team.nl/dmo/2014/results/323.php'))
+            continue
+        end
+        
         urlCrewResponse = webread(url);
+        disp(url);
+        if strcmp(url,'http://regatta.time-team.nl/raceroei/2014/results/025.php')
+            disp('');
+        end
         urlCrewResponseFilter(crew,:) = regexp(urlCrewResponse,'container.*?</div>','match');
         crewContent2 = regexp(urlCrewResponseFilter(crew,:),'<tr class=.*?><td>.*?</td></tr>','match');
         crewContent = crewContent2{1,1}(1:2:end);
@@ -80,15 +93,22 @@ for currentRowingMatch = 1 : numberofRowingMatches
         crewName = regexp(crewContent,'<a href=.*?>.*?</a>','match');
         crewName = crewName(~cellfun(@isempty, crewName));
         
-        crewStartName = {};
-        
         if(length(crewName) == 0)
             continue
         end
         for i = 1 : length(crewName(1,:))
-            crewLinktmp(i,:) = regexp(crewName{1,i}{1,2},'''(.[^'']*)''','match');
-            crewLinktmp2(i,:) = regexp(crewName{1,i}{1,2},'>.*?<','match');
-            crewLinktmp3(i,:) = regexp(crewContent,'right;.*?>.*?</td>','match');
+            crewNameStr = rowingCrews{1,crew}{1,1};
+            crewNameStr = crewNameStr(2:end-1);
+            %disp(['Size of crewcell: ', num2str(length(crewName{1,i}))]);
+            if( currentRowingMatch == 5 || currentRowingMatch == 27 || strcmp(crewNameStr,'Mixed Schoolroeien 4 (klas 4, 5, 6 &amp; ROC)') || strcmp(crewNameStr,'Junior Men&#039;s  Eight') || strcmp(crewNameStr,'Junior Women&#039;s  Four') || strcmp(crewNameStr,'Junior Women&#039;s  Eight') || strcmp(crewNameStr,'Mixed bedrijfs acht') || length(crewName{1,i}) == 1)
+                crewLinktmp(i,:) = regexp(crewName{1,i}{1,1},'''(.[^'']*)''','match');
+                crewLinktmp2(i,:) = regexp(crewName{1,i}{1,1},'>.*?<','match');
+                crewLinktmp3(i,:) = regexp(crewContent,'right;.*?>.*?</td>','match');
+            else   
+                crewLinktmp(i,:) = regexp(crewName{1,i}{1,2},'''(.[^'']*)''','match');
+                crewLinktmp2(i,:) = regexp(crewName{1,i}{1,2},'>.*?<','match');
+                crewLinktmp3(i,:) = regexp(crewContent,'right;.*?>.*?</td>','match');
+            end
             %crewLinktmp4(i,:) = regexp(crewLinktmp3,'>.*?<','match');
             for j = 1 : length(crewLinktmp3{1,i})-1
                 rowingCrews{2,crew}{i,j+2} = crewLinktmp3{1,i}{1,j}(9:end-5);
