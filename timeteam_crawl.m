@@ -1,9 +1,8 @@
 function [timestruct] = timeteam_crawl()
-%pubmed_search Search PubMed database and write results to MATLAB structure
+% search time-team.nl database and write results to MATLAB structure
 %
 %   INPUTS
 %   =========================================
-%
 %
 %   OPTIONAL INPUTS
 %   =========================================
