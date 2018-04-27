@@ -12,7 +12,7 @@ function [pool] = timeStruct_timePool()
 %   =========================================
 
 %% load timestruct.mat
-load('timingstruct.mat');
+load('timestruct.mat');
 poolingList = [];
 
 for timestruct_at = 1 : length(timestruct);

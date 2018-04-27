@@ -12,19 +12,19 @@ function [timestruct] = timeteam_crawl()
 
 
 %% Create base URL for time-team db site
-baseSearchURL = 'https://time-team.nl/informatie/uitslagen';
+baseSearchURL = 'https://time-team.nl/nl/info/results';
 urlResponse = webread(baseSearchURL);
 
-
-matches = regexp(urlResponse, 'http://regatta..*?matrix.php', 'match');
+% find links to rowing matches on base search url
+matches = regexp(urlResponse, 'https://regatta..*?matrix.php', 'match');
 [numberofRowingMatches] = length(matches);
 
 %% Handle NKIR/DMO 2014 error exception
-
 err = 0;
 for currentRowingMatch = 1 : numberofRowingMatches
     urlMatchResponse = [];
     disp(matches{1,currentRowingMatch-err});
+    % skip nkir 2014 by string comparison using regular expressions
     if(regexp(matches{1,currentRowingMatch-err},'nkir/2014'))
         [~,hitsForwardslash] = regexp(matches{1,currentRowingMatch-err},'/');
         matches{1,numberofRowingMatches+1} = regexp(matches{1,currentRowingMatch-err}(hitsForwardslash(5):end),'[]http://regatta..*?matrix.php', 'match');
@@ -35,30 +35,31 @@ for currentRowingMatch = 1 : numberofRowingMatches
     end
 end
 [numberofRowingMatches] = length(matches);
-disp(matches{1,numberofRowingMatches});
 %% Loop over all rowing matches
 importErrors = 0;
 
 for currentRowingMatch = 1 : numberofRowingMatches
     urlMatchResponse = [];
     rowingCrewURL=[];
-    %Default var (name,year)
+    % Get rowing match name and year
     [~,hitsForwardslash] = regexp(matches{1,currentRowingMatch},'/');
     name = matches{1,currentRowingMatch}(hitsForwardslash(3)+1:hitsForwardslash(4)-1);
     year = matches{1,currentRowingMatch}(hitsForwardslash(4)+1:hitsForwardslash(5)-1);
     disp(matches{1,currentRowingMatch});
     
-    % Exception handeling
+    % Exception handeling, these rowing matches cause wierd errors using
+    % regexp. May be re-added later on with script improvements
     if strcmp(name,'coupe') || strcmp(name,'nls') || strcmp(name,'srg') || strcmp(name,'dmo')
         importErrors = importErrors + 1;
         continue
     end
+    % Remove data from before 2012,
     if strcmp(year,'2011') || strcmp(year,'2010')
         importErrors = importErrors + 1;
         break
     end
     
-    % Read match
+    % Read match url
     urlMatchResponse = webread(matches{1,currentRowingMatch});
     
     % Get rowing crew specific url extension
@@ -68,15 +69,20 @@ for currentRowingMatch = 1 : numberofRowingMatches
         rowingCrewURL(i,:) = urlMatchResponse(index(i)-9:index(i)-3);
         %disp(strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(i,:)));
     end
+    % check if a field (like 'J18') has actually competed 
     isValidRowingCrew = isstrprop(rowingCrewURL(:,1),'digit');
     rowingCrews = rowingCrews(isValidRowingCrew);
     rowingCrewURL = rowingCrewURL(isValidRowingCrew,:);
+    % display fields which have competed
     disp(strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(1,:)));
     
+    % Loop over each field (like 'J18')
     for crew = 1 : length(rowingCrews)
         url = strcat(matches{1,currentRowingMatch}(1:end-10),rowingCrewURL(crew,:));
         tablefilter = [];
         matchname = [];
+        % Some older match use a different naming type causing this script
+        % to crash
         if(strcmp(url,'http://regatta.time-team.nl/asoposnajaars/2016/results/001.php') || strcmp(url,'http://regatta.time-team.nl/asoposnajaars/2016/results/002.php') || strcmp(url,'http://regatta.time-team.nl/dmo/2014/results/323.php'))
             continue
         end
